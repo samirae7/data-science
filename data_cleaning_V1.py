@@ -48,7 +48,7 @@ print(na_per_row[na_per_row > 0].value_counts().sort_index())
 # %%
 tabelle = data[data.isna().sum(axis=1) == 1].copy()
 tabelle["fehlendes Feld"] = data.isna().idxmax(axis=1)
-tabelle
+print(tabelle)
 
 # %% [markdown]
 # 22 rows have exactly one missing value. These are isolated gaps, scattered across the dataset, which is what random missingness looks like.
