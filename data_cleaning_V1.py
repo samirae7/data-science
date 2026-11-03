@@ -10,8 +10,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # %%
-data = pd.read_csv("./Data_CTG_2.csv", sep=";")
-data.head()
+df_1 = pd.read_csv("./CTG.csv", sep=";")
+
+data = df_1
 
 # %%
 data.dtypes
@@ -30,6 +31,7 @@ ax.set_title("Missing Values Heatmap\n(yellow = missing, purple = present)", fon
 plt.tight_layout()
 plt.show()
 
+"""
 # %%
 data = data.dropna(how="all") #drops empty row
 data.head()
@@ -37,19 +39,22 @@ data.head()
 # %%
 data = data.dropna(subset=["CLASS","NSP"]) #A row without a label can’t be used for training or evaluation.
 # Listwise/ dropping entire rows
+"""
 
 # %%
 na_per_row = data.isna().sum(axis=1)
 print(na_per_row[na_per_row > 0].value_counts().sort_index())
 
 # %%
-tabelle = data[data.isna().sum(axis=1) == 1]
+tabelle = data[data.isna().sum(axis=1) == 1].copy()
+tabelle["fehlendes Feld"] = df.isna().idxmax(axis=1)
 print(tabelle)
 
 # %% [markdown]
 # 22 rows have exactly one missing value. These are isolated gaps, scattered across the dataset, which is what random missingness looks like.
 # 3 rows have 20, 22 and 23 missing values. These are nearly empty rows. With about 37 columns left, more than half of each row is blank. They are damaged or incomplete records, not random gaps, so drop them. There’s nothing to salvage.
 
+"""
 # %%
 data = data[na_per_row < 10] # dros rows with 20, 22, 23 missing values. 
 
@@ -173,5 +178,5 @@ data_clean.shape
 # No columns were dropped for missing values, because the missingness was tiny (1 to 9 values per column) and scattered. Dropping rows was the better option.
 # 
 # 
-
+"""
 
