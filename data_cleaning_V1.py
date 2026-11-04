@@ -23,14 +23,14 @@ data.describe()
 # %%
 data.isna().sum(axis=1).sum()
 data.isna().any(axis=1).sum()
-
+"""
 # %%
 fig, ax = plt.subplots(figsize=(14, 5)) #ax = the plotting area where the heatmap will be drawn.
 sns.heatmap(data.isnull(), cbar=False, yticklabels=False, cmap='viridis', ax=ax)
 ax.set_title("Missing Values Heatmap\n(yellow = missing, purple = present)", fontsize=13)
 plt.tight_layout()
 plt.show()
-
+"""
 """
 # %%
 data = data.dropna(how="all") #drops empty row
@@ -40,24 +40,64 @@ data.head()
 data = data.dropna(subset=["CLASS","NSP"]) #A row without a label can’t be used for training or evaluation.
 # Listwise/ dropping entire rows
 """
+data_2 = data.dropna(how="all") #drops empty row
+
+dropped = data_2[data_2[["CLASS","NSP"]].isna().any(axis=1)]
+print(len(dropped))
+
+data_3 = data_2.dropna(subset=["CLASS","NSP"]) #A row without a label can’t be used for training or evaluation.
+# Listwise/ dropping entire rows
+
+print(len(data_2), "rows before")
+print(len(data_3), "rows after")
+print(len(data_2) - len(data_3), "rows dropped")
 
 # %%
-na_per_row = data.isna().sum(axis=1)
+na_per_row = data_3.isna().sum(axis=1)
 print(na_per_row[na_per_row > 0].value_counts().sort_index())
-
-# %%
-tabelle = data[data.isna().sum(axis=1) == 1].copy()
-tabelle["fehlendes Feld"] = data.isna().idxmax(axis=1)
-print(tabelle)
-
-# %% [markdown]
 # 22 rows have exactly one missing value. These are isolated gaps, scattered across the dataset, which is what random missingness looks like.
 # 3 rows have 20, 22 and 23 missing values. These are nearly empty rows. With about 37 columns left, more than half of each row is blank. They are damaged or incomplete records, not random gaps, so drop them. There’s nothing to salvage.
 
-"""
-# %%
-data = data[na_per_row < 10] # dros rows with 20, 22, 23 missing values. 
 
+# %%
+tabelle = data_3[data_3.isna().sum(axis=1) == 1].copy()
+tabelle["fehlendes Feld"] = data_3.isna().idxmax(axis=1)
+print(tabelle)
+print(len(tabelle))
+
+data_4 = data_3[na_per_row < 10] # dros rows with 20, 22, 23 missing values. 
+
+
+#Does missingness relate to the label?
+from scipy.stats import chi2_contingency
+data_4["has_na"] = data_4.isna().any(axis=1)
+ct = pd.crosstab(data_4["has_na"], data_4["NSP"])
+print(ct)
+print("p =", chi2_contingency(ct)[1])
+#A large p-value (above 0.05) means no evidence that missingness depends on the class.
+
+#Does missingness relate to the other measurements (the MCAR check)?
+from scipy.stats import mannwhitneyu
+
+data_4 = data_4.copy()
+data_4["has_na"] = data_4.isna().any(axis=1)
+
+num_cols = [c for c in data_4.columns if c not in ["has_na", "CLASS", "NSP"]]
+res = []
+for c in num_cols:
+    a = data_4.loc[data_4["has_na"], c].dropna()
+    b = data_4.loc[~data_4["has_na"], c].dropna()
+    if len(a) < 3 or data_4[c].nunique() < 2:
+        continue                      # too few values or constant column
+    try:
+        res.append((c, mannwhitneyu(a, b).pvalue))
+    except Exception as e:
+        print(c, "->", type(e).__name__, e)
+
+res = pd.DataFrame(res, columns=["col", "p"]).sort_values("p")
+print(res)
+
+""" 
 
 # %%
 data_noNA = data.dropna(axis=0) #drops all rows with missingness
@@ -162,7 +202,7 @@ data_clean.shape
 # The original file had 2,127 rows. After cleaning, data_clean has 2052 rows, so 75 were removed (about 3.5%). The removals were:
 # 
 # 1 completely empty row, which carried no information.
-# 18 rows with a missing label (CLASS/NSP), because rows without a label can’t be used for training or evaluation.
+# 10 rows with a missing label (CLASS/NSP), because rows without a label can’t be used for training or evaluation.
 # 3 nearly empty rows (20 to 23 values missing out of about 37), which were damaged records.
 # 22 rows with a single missing value. The gaps were spread across columns and looked random, and the rows were under 2% of the data, so I dropped them instead of imputing.
 # 21 rows with physically impossible values, such as Mean, Median, Mode, Min and Max in the hundreds of thousands, negative Width, and ASTV below 0 or above 100. These looked like formatting or data-entry errors.
