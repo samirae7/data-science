@@ -97,92 +97,129 @@ for c in num_cols:
 res = pd.DataFrame(res, columns=["col", "p"]).sort_values("p")
 print(res)
 
-""" 
+ 
 
 # %%
-data_noNA = data.dropna(axis=0) #drops all rows with missingness
+data_noNA = data_4.dropna(axis=0) #drops all rows with missingness
 data_noNA.shape
 
+print("Check for no NAN")
+print(data_noNA.isna().any(axis=1).sum())
+
+print("Rows dropped: ")
+print(len(data_4), "rows before")
+print(len(data_noNA), "rows after")
+print(len(data_4) - len(data_noNA), "rows dropped")
 # %%
-data_noNA.drop(columns=["FileName", "Date", "SegFile"], inplace=True)
-data_noNA.shape
+
+data_5 = data_noNA
+data_5.drop(columns=["FileName", "Date", "SegFile"], inplace=True)
+data_5.shape
 
 # %% [markdown]
 # FileName, Date and SegFile are identifiers, not measurements. Drop them before modelling, or the model may learn from them by accident.
 
 # %%
-data_noNA.isna().sum(axis=1).sum()
-data_noNA.dtypes
+print("WHat are the data types: ")
+print(data_5.dtypes)
 
 # %%
-text_cols = data_noNA.select_dtypes(include="object").columns
+# turns object to numeric values
+text_cols = data_5.select_dtypes(include="object").columns #Finds all columns that pandas stored as text (dtype object)
 print(list(text_cols))
 
 for c in text_cols:
-    data_noNA[c] = pd.to_numeric(
-        data_noNA[c].astype(str).str.strip().str.replace(",", "."),
-        errors="coerce"
+    data_5[c] = pd.to_numeric(
+        data_5[c].astype(str).str.strip().str.replace(",", "."),
+        errors="coerce" # If a value still can’t be read as a number (for example "?"), coerce turns it into NaN instead of raising an error.
     )
 
-print(data_noNA.dtypes.value_counts())
-print(data_noNA.isna().sum().sum())
-print(data_noNA[data_noNA.isna().any(axis=1)])
+print("check: ")
+print(data_5.dtypes.value_counts())
+print(data_5.isna().sum().sum())
+print(data_5[data_5.isna().any(axis=1)])
+
 
 # %%
-data_noNA = data_noNA.dropna()
-
+data_6 = data_5.dropna() #drops rows where it couldnt be converted into numeric values
+print(len(data_5), "rows before")
+print(len(data_6), "rows after")
+print(len(data_5) - len(data_6), "rows dropped")
 # %%
+print()
+print("Check for outliers: ")
 skip = ["CLASS","NSP","A","B","C","D","E","AD","DE","LD","FS","SUSP","Tendency"]
-num_cols = [c for c in data_noNA.columns if c not in skip]
+num_cols = [c for c in data_6.select_dtypes(include="number").columns if c not in skip]
 
 rows = []
-for c in num_cols:
-    q1, q3 = data_noNA[c].quantile([.25, .75])
+for c in num_cols: # how many values fall outside the usual range (1.5 × IQR beyond the quartiles)
+    q1, q3 = data_6[c].quantile([.25, .75])
     iqr = q3 - q1
     lo, hi = q1 - 1.5*iqr, q3 + 1.5*iqr
-    n = ((data_noNA[c] < lo) | (data_noNA[c] > hi)).sum()
-    rows.append((c, data_noNA[c].min(), data_noNA[c].max(), n, round(100*n/len(data_noNA), 1)))
+    n = ((data_6[c] < lo) | (data_6[c] > hi)).sum()
+    rows.append((c, data_6[c].min(), data_6[c].max(), n, round(100*n/len(data_6), 1)))
 summary = pd.DataFrame(rows, columns=["col","min","max","n_outliers","pct"])
-print(summary.sort_values("pct", ascending=False))
+print(summary.sort_values("pct", ascending=False)) # table of each column’s min, max, number of outliers and percentage of outliers, sorted from most to least.
+
 
 # %% [markdown]
-# Drop DR
+# Drop DR: Its min and max are both 0, so it’s constant and carries no information. Remove it before modelling (DS is nearly constant too, with a max of 1, but I’d keep it for now).
 # 
-# Its min and max are both 0, so it’s constant and carries no information. Remove it before modelling (DS is nearly constant too, with a max of 1, but I’d keep it for now).
+# Min, Max, Mean, Median and Mode describe a heart-rate histogram. As far as I know, a fetal heart rate of 100 to 200 bpm is the normal range, so values in the hundreds of thousands can’t be real. 
 # 
-# Min, Max, Mean, Median and Mode describe a heart-rate histogram. As far as I know, a fetal heart rate of 100 to 200 bpm is the normal range, so values in the hundreds of thousands can’t be real. Width (the histogram’s range) can’t be negative. ASTV is a percentage, so it can’t be below 0 or above 100. These look like formatting or data-entry errors, such as a misplaced decimal separator. The huge Mean, Min and Max values may well come from the same few rows, so check them together.
+# Width (the histogram’s range) can’t be negative. 
+# 
+# ASTV is a percentage, so it can’t be below 0 or above 100. These look like formatting or data-entry errors, such as a misplaced decimal separator. The huge Mean, Min and Max values may well come from the same few rows, so check them together.
 # 
 # Probably fine: high percentages that are expected
-# 
 # Nzeros (23.5%), FM (14.6%), ALTV (14.5%), Variance, DP, AC and DL have lots of IQR outliers, but their values are plausible: a few counts, a percentage up to 91, movements up to 564. These columns are skewed and mostly zeros. The IQR rule flags every non-zero value as unusual when most values are 0. These are real observations, so keep them.
-# 
 # LB, LBE, b and e have no outliers, and their ranges look sensible (a baseline of 106 to 160 bpm).
 
 # %%
-bad = (
-    (data_noNA[["Min","Max","Mean","Median","Mode"]] > 300).any(axis=1)
-    | (data_noNA["Width"] < 0) | (data_noNA["Width"] > 300)
-    | (data_noNA["ASTV"] < 0) | (data_noNA["ASTV"] > 100)
+bad = ( #Starts building a True/False column called bad, with one entry per row.
+    (data_6[["Min","Max","Mean","Median","Mode"]] > 300).any(axis=1) #any(axis=1) collapses each row to a single True if at least one of those five values exceeds 300
+    | (data_6["Width"] < 0) | (data_6["Width"] > 300) #The | means “or”, so a row is flagged if any condition is true.
+    | (data_6["ASTV"] < 0) | (data_6["ASTV"] > 100)
 )
 print(bad.sum())
-print(data_noNA[bad][["Min","Max","Mean","Median","Mode","Width","ASTV"]])
+print(data_6[bad][["Min","Max","Mean","Median","Mode","Width","ASTV"]])
+
 
 # %%
-data_noNA.shape
+data_7 = data_6[~bad].drop(columns="DR") #Keeps only the rows that are not bad. Removes the column DR from the result
+print(len(data_6), "rows before")
+print(len(data_7), "rows after")
+print(len(data_6) - len(data_7), "rows dropped")
+
 
 # %%
-data_clean = data_noNA[~bad].drop(columns="DR")
-data_clean.shape
+cols_without_time = [c for c in data_7.columns if c not in ["b", "e"]]
+print(data_7.duplicated().sum(), "duplicates including b and e")
+print(data_7.duplicated(subset=cols_without_time).sum(), "duplicates ignoring b and e")
 
 # %%
-cols_without_time = [c for c in data_clean.columns if c not in ["b", "e"]]
-print(data_clean.duplicated().sum(), "duplicates including b and e")
-print(data_clean.duplicated(subset=cols_without_time).sum(), "duplicates ignoring b and e")
+data_8 = data_7.drop_duplicates(subset=cols_without_time)
+data_8.shape
 
-# %%
-data_clean = data_clean.drop_duplicates(subset=cols_without_time)
-data_clean.shape
+print(len(data_7), "rows before")
+print(len(data_8), "rows after")
+print(len(data_7) - len(data_8), "rows dropped")
 
+print()
+print("Total rows dropped: ")
+print(len(data), "rows before")
+print(len(data_8), "rows after")
+print(len(data) - len(data_8), "rows dropped")
+
+print()
+print("Final Check: ")
+print(data_8.isna().sum(axis=1).sum())
+print(data_8.duplicated().any())
+
+output_path = 'CTG_cleaned_V1.csv'
+data_8.to_csv(output_path, index=False)
+
+"""
 # %% [markdown]
 # The output means:
 # 
@@ -205,6 +242,7 @@ data_clean.shape
 # 10 rows with a missing label (CLASS/NSP), because rows without a label can’t be used for training or evaluation.
 # 3 nearly empty rows (20 to 23 values missing out of about 37), which were damaged records.
 # 22 rows with a single missing value. The gaps were spread across columns and looked random, and the rows were under 2% of the data, so I dropped them instead of imputing.
+# 8 rows where the content couldn't be turned into numerical values
 # 21 rows with physically impossible values, such as Mean, Median, Mode, Min and Max in the hundreds of thousands, negative Width, and ASTV below 0 or above 100. These looked like formatting or data-entry errors.
 # 10 duplications
 # 
