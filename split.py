@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 SEED = 42
-CSV_PATH = "CTG_cleaned_V1_gesendet.csv"
+CSV_PATH = "CTG_cleaned_V1.csv"
 
 # 1. Daten laden
 df = pd.read_csv(CSV_PATH)
