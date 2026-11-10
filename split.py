@@ -20,10 +20,18 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # 4. Kontrolle und Speichern
-print(len(X_train), len(X_test))
-print(y_train.value_counts(normalize=True).round(3))
-print(y_test.value_counts(normalize=True).round(3))
+# 4. Kontrolle: Sind Train und Test wirklich 80 % und 20 %?
+print(f"\nTrain: {len(X_train)} rows ({len(X_train)/len(X)*100:.1f}%)")
+print(f"Test:  {len(X_test)} rows ({len(X_test)/len(X)*100:.1f}%)\n")
 
+# Kontrolle: Klassenverteilung in Train und Test (sollte fast gleich sein)
+print("-" * 70)
+print("Class Balance")
+print("-" * 70 + "\n")
+print(f"Train:\n{y_train.value_counts(normalize=True).round(3)}")
+print(f"\nTest:\n{y_test.value_counts(normalize=True).round(3)}\n")
+
+# 5. Speichern
 train = X_train.assign(NSP=y_train)
 test = X_test.assign(NSP=y_test)
 train.to_csv("train.csv", index=False)
