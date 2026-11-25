@@ -1,0 +1,14 @@
+{
+  "k": 8,
+  "features": [
+    "ASTV",
+    "ALTV",
+    "Mean",
+    "AC",
+    "MSTV",
+    "Median",
+    "Mode",
+    "Variance"
+  ],
+  "kendall_w": 0.792
+}
