@@ -1,0 +1,18 @@
+{
+  "model": "RandomForest",
+  "features": [
+    "ASTV",
+    "ALTV",
+    "Mean",
+    "AC",
+    "MSTV",
+    "Median",
+    "Mode",
+    "Variance"
+  ],
+  "best_params": {
+    "max_depth": null,
+    "min_samples_leaf": 1
+  },
+  "inner_cv_f1": 0.887
+}

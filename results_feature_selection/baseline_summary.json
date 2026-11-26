@@ -1,0 +1,14 @@
+{
+  "f1_macro": {
+    "mean": 0.884,
+    "std": 0.029
+  },
+  "balanced_accuracy": {
+    "mean": 0.897,
+    "std": 0.026
+  },
+  "accuracy": {
+    "mean": 0.931,
+    "std": 0.022
+  }
+}
