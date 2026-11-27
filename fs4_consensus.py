@@ -37,7 +37,8 @@ def kendall_w(c, cols=METHOD_RANKS):
     return 12 * S / (m ** 2 * (n ** 3 - n))
 
 
-if __name__ == "__main__":
+def run():
+    """Step 4: consensus ranking + heatmap. Needs the CSVs of steps 1–3."""
     mi = pd.read_csv(RESULTS / "fs1_mutual_information.csv", index_col="feature")   # step 1
     rf = pd.read_csv(RESULTS / "fs2_rf_importance.csv", index_col="feature")        # step 2
     rfe = pd.read_csv(RESULTS / "fs3_rfe.csv", index_col="feature")                 # step 3
@@ -66,3 +67,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(RESULTS / "fs4_consensus.png", dpi=150)
     plt.close()
+
+
+if __name__ == "__main__":
+    run()

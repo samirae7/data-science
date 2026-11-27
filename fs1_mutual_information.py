@@ -18,7 +18,8 @@ def mutual_information(X, y, cv=INNER_CV, seed=SEED):
     return ranking
 
 
-if __name__ == "__main__":
+def run():
+    """Step 1: MI ranking + plot (whole training set)."""
     X, y = load_train()
     ranking = mutual_information(X, y)
     ranking.to_csv(RESULTS / "fs1_mutual_information.csv")        # -> step 4
@@ -33,3 +34,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(RESULTS / "fs1_mutual_information.png", dpi=150)
     plt.close()
+
+
+if __name__ == "__main__":
+    run()

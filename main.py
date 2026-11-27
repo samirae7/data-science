@@ -1,4 +1,42 @@
+"""Main script: feature selection + nested cross-validation (baseline vs. selected features).
+
+select_features()   the complete feature selection (steps 1–5) as ONE function:
+                      1. mutual information      (fs1, filter)
+                      2. RF importance           (fs2, embedded; only permutation -> consensus)
+                      3. RFE                     (fs3, wrapper)
+                      4. consensus ranking       (fs4)
+                      5. top-k curve + 1-SE rule (fs5) -> number of features k
+                    It only uses the data passed to it.
+
+python main.py runs the WHOLE project in this order (about 25 min):
+  0. data_cleaning_V1.py   CTG.csv -> CTG_cleaned_V1.csv (run unchanged as a script);
+                   split.py then makes the
+                   stratified 80/20 train/test split (train.csv, test.csv)
+  1. fs0–fs4       step plots on the whole training set (correlation, MI, RF importance,
+                   RFE/RFECV, consensus)
+  2. baseline.py   baseline evaluation (scores, per-class report, confusion matrix)
+  3. nested CV     run_nested_cv() below
+  4. model_comparison.py   other models, tuned in a nested CV (macro F1, ROC/AUC)
+  All results (CSV, JSON, PNG) go to results_feature_selection/.
+
+run_nested_cv():
+  For each of the 5 OUTER folds (OUTER_CV):
+    1. Baseline:          fit_baseline() from baseline.py (all 21 features, untuned)
+    2. Feature selection: select_features() on the outer-training part ONLY
+                          (its inner CV = INNER_CV splits only this part)
+    3. Reduced model:     the same untuned model, only the selected features
+    -> both evaluated on the SAME outer test fold: the only difference is the features.
+  Afterwards:
+    - stability: in how many outer folds was each feature selected?
+    - final selection on the whole training set -> features for the final model
+
+Step 0 (correlation) selects nothing: it is run once on the whole training set (context only).
+Balancing (class_weight="balanced") is part of make_model(), so it happens inside every
+training fold automatically. The test set is never used here.
+"""
 import json
+import time
+import runpy
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score, balanced_accuracy_score, classification_report
@@ -11,6 +49,9 @@ from fs2_rf_importance import rf_importance
 from fs3_rfe import rfe_ranking
 from fs4_consensus import consensus_ranking, kendall_w
 from fs5_topk_curve import topk_curve, choose_k, plot_topk_curve
+import fs0_correlation, fs1_mutual_information, fs2_rf_importance, fs3_rfe, fs4_consensus
+import baseline
+import model_comparison
 
 
 def select_features(X, y, cv=INNER_CV, verbose=False):
@@ -30,7 +71,8 @@ def select_features(X, y, cv=INNER_CV, verbose=False):
     return order[:k], details
 
 
-if __name__ == "__main__":
+def run_nested_cv():
+    """Nested CV: baseline vs. selected features + stability + final selection."""
     X, y = load_train()
     n_outer = OUTER_CV.get_n_splits()
     print(f"Training set: {X.shape}\n")
@@ -130,3 +172,36 @@ if __name__ == "__main__":
     plt.title("Nested CV: baseline vs. selected features (both untuned)")
     plt.legend(loc="lower right"); plt.tight_layout()
     plt.savefig(RESULTS / "main_nested_cv_performance.png", dpi=150); plt.close()
+
+
+def section(title):
+    print("\n" + "#" * 80 + f"\n# {title}\n" + "#" * 80, flush=True)
+
+
+if __name__ == "__main__":
+    start = time.time()
+    section("0/4  Data cleaning (CTG.csv -> CTG_cleaned_V1.csv) and train/test split")
+    # The cleaning script is run unchanged, exactly as with "python data_cleaning_V1.py"
+    runpy.run_path("data_cleaning_V1.py", run_name="__main__")
+    import split   # noqa: F401  runs the stratified 80/20 split once (train.csv, test.csv)
+
+    section("1/4  Feature selection steps on the whole training set (plots)")
+    for name, module in [("Step 0: correlation", fs0_correlation),
+                         ("Step 1: mutual information", fs1_mutual_information),
+                         ("Step 2: RF importance", fs2_rf_importance),
+                         ("Step 3: RFE / RFECV", fs3_rfe),
+                         ("Step 4: consensus ranking", fs4_consensus)]:
+        print(f"\n----- {name} -----")
+        module.run()
+
+    section("2/4  Baseline (all 21 features, untuned)")
+    baseline.run()
+
+    section("3/4  Nested CV: baseline vs. feature selection + final selection")
+    run_nested_cv()
+
+    section("4/4  Model comparison (nested CV with tuning, macro F1, ROC/AUC)")
+    model_comparison.run()
+
+    print(f"\nDone in {(time.time() - start) / 60:.1f} min. "
+          f"All results are in the folder '{RESULTS}'.")

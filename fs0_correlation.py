@@ -18,7 +18,8 @@ def correlation_analysis(X, threshold=0.8):
     return corr, pairs
 
 
-if __name__ == "__main__":
+def run():
+    """Step 0: correlation matrix, correlated pairs and heatmap (whole training set)."""
     X, y = load_train()
     corr, pairs = correlation_analysis(X)
     corr.round(3).to_csv(RESULTS / "fs0_correlation.csv")
@@ -29,13 +30,16 @@ if __name__ == "__main__":
 
     # Hierarchical clustering with distance 1 - |rho|: strongly positive AND strongly
     # negative correlated features (both redundant) end up next to each other.
-    dist = 1 - corr.abs()                                   # |rho| hoch -> Abstand klein
+    dist = 1 - corr.abs()
     link = linkage(squareform(dist.values, checks=False), method="average")
     g = sns.clustermap(corr, row_linkage=link, col_linkage=link,
                        cmap="coolwarm", vmin=-1, vmax=1,
                        annot=True, fmt=".1f", annot_kws={"size": 7},
-                       figsize=(12, 12),
-                       cbar_kws={"label": "Spearman rho"})
+                       figsize=(12, 12), cbar_kws={"label": "Spearman rho"})
     g.fig.suptitle("Correlation of CTG features (training set)", y=1.02)
     g.savefig(RESULTS / "fs0_correlation.png", dpi=150, bbox_inches="tight")
     plt.close(g.fig)
+
+
+if __name__ == "__main__":
+    run()

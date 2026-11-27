@@ -21,9 +21,12 @@ MODELS = {
         {"model__C": [0.01, 0.1, 1, 10, 100]},
     ),
     "kNN": (
-    lambda: ImbPipeline([("scaler", StandardScaler()),
-                         ("smote", SMOTE(random_state=SEED)),
-                         ("model", KNeighborsClassifier())])),
+        lambda: ImbPipeline([("scaler", StandardScaler()),
+                             ("smote", SMOTE(random_state=SEED)),
+                             ("model", KNeighborsClassifier())]),
+        {"model__n_neighbors": [3, 5, 11, 21], "model__weights": ["uniform", "distance"]},
+    ),
+
     "SVM": (
         lambda: pipe(SVC(kernel="rbf", class_weight="balanced", probability=True, random_state=SEED)),
         {"model__C": [0.1, 1, 10, 100], "model__gamma": ["scale", 0.01, 0.1]},
@@ -33,5 +36,5 @@ MODELS = {
         lambda: pipe(RandomForestClassifier(n_estimators=300, class_weight="balanced",
                                             random_state=SEED, n_jobs=1)),
         {"model__max_depth": [None, 10, 20], "model__min_samples_leaf": [1, 3, 5]},
-    )
+    ),
 }

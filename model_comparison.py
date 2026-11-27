@@ -52,7 +52,8 @@ def plot_roc(y_true, oof_proba, set_name, path):
     plt.close()
 
 
-if __name__ == "__main__":
+def run():
+    """Model comparison (nested CV, tuning, macro F1, ROC/AUC) + final model."""
     X, y = load_train()
     fold_features = load_fold_features()
     n_outer = OUTER_CV.get_n_splits()
@@ -131,6 +132,7 @@ if __name__ == "__main__":
     print(f"Final hyperparameters (whole training set, final features): {final['best_params']}")
     print(f"-> saved to {RESULTS / 'final_model.json'} (for the final evaluation on the test set)")
 
+
     # ---------------- Plots ----------------
     # 1. ROC curves (one figure per feature set)
     plot_roc(y, oof_proba, "selected", RESULTS / "model_comparison_roc_selected.png")
@@ -153,3 +155,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(RESULTS / "model_comparison.png", dpi=150)
     plt.close()
+
+
+if __name__ == "__main__":
+    run()

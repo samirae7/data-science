@@ -37,7 +37,8 @@ def rf_importance(X, y, cv=INNER_CV, seed=SEED, n_repeats=10, verbose=False):
     return ranking, np.array(fold_f1)
 
 
-if __name__ == "__main__":
+def run():
+    """Step 2: Gini + permutation importance + plot (whole training set)."""
     X, y = load_train()
     ranking, fold_f1 = rf_importance(X, y, verbose=True)
     print(f"Average CV macro F1 (baseline): {fold_f1.mean():.3f} ± {fold_f1.std():.3f}\n")
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     print(ranking.round(4).to_string())
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 6))
-    for ax, col, title, color in [(axes[0], "gini", "Gini importance", "#DD8452"),
+    for ax, col, title, color in [(axes[0], "gini", "Gini importance (comparison only)", "#DD8452"),
                                   (axes[1], "perm", "Permutation importance (drop in macro F1)", "#55A868")]:
         r = ranking.sort_values(f"{col}_mean")
         ax.barh(r.index, r[f"{col}_mean"], xerr=r[f"{col}_std"], color=color)
@@ -55,3 +56,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(RESULTS / "fs2_rf_importance.png", dpi=150)
     plt.close()
+
+
+if __name__ == "__main__":
+    run()

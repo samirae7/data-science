@@ -42,7 +42,9 @@ def plot_topk_curve(curve, k, path, title="Top-k consensus curve (training set)"
     plt.savefig(path, dpi=150)
     plt.close()
 
-if __name__ == "__main__":
+
+def run():
+    """Step 5: top-k curve + choice of k. Needs the CSV of step 4."""
     X, y = load_train()
     cons = pd.read_csv(RESULTS / "fs4_consensus.csv", index_col="feature")   # step 4
     order = list(cons.index)
@@ -55,3 +57,7 @@ if __name__ == "__main__":
     print(curve.drop(columns="f1_se").round(3).to_string(index=False))
     print(f"\nSelected (one-SE rule): k = {k} -> {order[:k]}")
     plot_topk_curve(curve, k, RESULTS / "fs5_topk_curve.png")
+
+
+if __name__ == "__main__":
+    run()

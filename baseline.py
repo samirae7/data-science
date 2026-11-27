@@ -28,7 +28,8 @@ def evaluate_baseline(X, y, cv=OUTER_CV):
     return folds, y_pred
 
 
-if __name__ == "__main__":
+def run():
+    """Baseline evaluation with the outer CV: scores, per-class report, confusion matrix."""
     X, y = load_train()
     print(f"Training set: {len(y)} samples, class counts: {y.value_counts().sort_index().to_dict()}")
 
@@ -52,3 +53,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(RESULTS / "baseline_confusion_matrix.png", dpi=150)
     plt.close()
+
+
+if __name__ == "__main__":
+    run()
