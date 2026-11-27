@@ -9,7 +9,7 @@ select_features()   the complete feature selection (steps 1–5) as ONE function
                     It only uses the data passed to it.
 
 python main.py runs the WHOLE project in this order (about 25 min):
-  0. data_cleaning_V1.py   CTG.csv -> CTG_cleaned_V1.csv (run unchanged as a script);
+  0. data_cleaning_v1.py   CTG.csv -> CTG_cleaned_V1.csv (run unchanged as a script);
                    split.py then makes the
                    stratified 80/20 train/test split (train.csv, test.csv)
   1. fs0–fs4       step plots on the whole training set (correlation, MI, RF importance,
@@ -17,6 +17,7 @@ python main.py runs the WHOLE project in this order (about 25 min):
   2. baseline.py   baseline evaluation (scores, per-class report, confusion matrix)
   3. nested CV     run_nested_cv() below
   4. model_comparison.py   other models, tuned in a nested CV (macro F1, ROC/AUC)
+  5. final_evaluation.py   final model vs. baseline, evaluated ONCE on the test set
   All results (CSV, JSON, PNG) go to results_feature_selection/.
 
 run_nested_cv():
@@ -52,6 +53,7 @@ from fs5_topk_curve import topk_curve, choose_k, plot_topk_curve
 import fs0_correlation, fs1_mutual_information, fs2_rf_importance, fs3_rfe, fs4_consensus
 import baseline
 import model_comparison
+import final_evaluation
 
 
 def select_features(X, y, cv=INNER_CV, verbose=False):
@@ -180,12 +182,12 @@ def section(title):
 
 if __name__ == "__main__":
     start = time.time()
-    section("0/4  Data cleaning (CTG.csv -> CTG_cleaned_V1.csv) and train/test split")
-    # The cleaning script is run unchanged, exactly as with "python data_cleaning_V1.py"
-    runpy.run_path("data_cleaning_V1.py", run_name="__main__")
+    section("0/5  Data cleaning (CTG.csv -> CTG_cleaned_V1.csv) and train/test split")
+    # The cleaning script is run unchanged, exactly as with "python data_cleaning_v1.py"
+    runpy.run_path("data_cleaning_v1.py", run_name="__main__")
     import split   # noqa: F401  runs the stratified 80/20 split once (train.csv, test.csv)
 
-    section("1/4  Feature selection steps on the whole training set (plots)")
+    section("1/5  Feature selection steps on the whole training set (plots)")
     for name, module in [("Step 0: correlation", fs0_correlation),
                          ("Step 1: mutual information", fs1_mutual_information),
                          ("Step 2: RF importance", fs2_rf_importance),
@@ -194,14 +196,17 @@ if __name__ == "__main__":
         print(f"\n----- {name} -----")
         module.run()
 
-    section("2/4  Baseline (all 21 features, untuned)")
+    section("2/5  Baseline (all 21 features, untuned)")
     baseline.run()
 
-    section("3/4  Nested CV: baseline vs. feature selection + final selection")
+    section("3/5  Nested CV: baseline vs. feature selection + final selection")
     run_nested_cv()
 
-    section("4/4  Model comparison (nested CV with tuning, macro F1, ROC/AUC)")
+    section("4/5  Model comparison (nested CV with tuning, macro F1, ROC/AUC)")
     model_comparison.run()
+
+    section("5/5  Final evaluation on the TEST SET (used once)")
+    final_evaluation.run()
 
     print(f"\nDone in {(time.time() - start) / 60:.1f} min. "
           f"All results are in the folder '{RESULTS}'.")

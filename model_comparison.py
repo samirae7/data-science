@@ -99,7 +99,8 @@ def run():
     summary.to_csv(RESULTS / "model_comparison_summary.csv", index=False)
 
     wide = summary.pivot(index="model", columns="features")
-    order = wide[("f1_macro_mean", "selected")].sort_values(ascending=False).index
+    # fair model comparison: all models get the same 21 features
+    order = wide[("f1_macro_mean", "all 21")].sort_values(ascending=False).index
 
     print("\n" + "=" * 80)
     print("MODEL COMPARISON (outer test folds, mean ± SD over 5 folds)")

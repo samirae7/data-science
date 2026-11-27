@@ -1,7 +1,6 @@
 # CTG – Feature Selection for Fetal State Classification (NSP)
 
-<!-- TODO: course name, semester, team members -->
-Course: Foundation of Data Science  
+Course: Foundation of Data Science HS26
 Team: G8 (Mahela Büchi, Alina Eichenberger, Samira Eugster, Lara Staub)
 
 ## Research question
@@ -43,7 +42,8 @@ The input file `CTG.csv` must be in the project folder.
 | 1 | `fs0_correlation.py` – `fs4_consensus.py` | Feature selection steps on the whole training set (plots for the report) |
 | 2 | `baseline.py` | Baseline: random forest with all 21 features, untuned, outer 5-fold CV |
 | 3 | `main.py` → `run_nested_cv()` | Nested CV: baseline vs. selected features, stability of the selection, final feature set |
-| 4 | `model_comparison.py`, `models.py` | LogReg, kNN, SVM, random forest tuned in a nested CV (macro F1, ROC/AUC) → final model |
+| 4 | `model_comparison.py`, `models.py` | LogReg, kNN, SVM, random forest tuned in a nested CV (macro F1, ROC/AUC); final model chosen on all 21 features |
+| 5 | `final_evaluation.py` | Final model and baseline trained on the whole training set, evaluated **once** on the test set (incl. 95 % bootstrap CI of the macro F1 difference) |
 
 ### Feature selection (steps fs0–fs5)
 
@@ -64,7 +64,7 @@ The input file `CTG.csv` must be in the project folder.
 ## Validation design
 
 - **Train/test split:** 80/20, stratified by NSP, `random_state = 42`.
-  The test set (`test.csv`) is **not used** by `main.py`; it is reserved for the final evaluation.
+    The test set (`test.csv`) is used only once, in the last step (`final_evaluation.py`).
 - **Outer CV:** 5-fold stratified (`OUTER_CV`), used for every evaluation.
 - **Inner CV:** 5-fold stratified (`INNER_CV`), only inside the training part of each outer fold
   (feature selection and hyperparameter tuning) → no information from the outer test fold leaks
@@ -91,6 +91,7 @@ data-science/
 ├── fs5_topk_curve.py          # step 5: top-k curve + choice of k
 ├── models.py                  # candidate models + hyperparameter grids
 ├── model_comparison.py        # nested CV model comparison + final model
+├── final_evaluation.py        # final evaluation on the test set (run once)
 ├── requirements.txt
 ├── CTG.csv                    # raw data (input)
 └── results_feature_selection/ # all outputs (created automatically)
@@ -107,6 +108,8 @@ data-science/
 | `final_features.json`, `final_topk_curve.png` | Final feature set (whole training set) |
 | `model_comparison_summary.csv`, `model_comparison.png`, `model_comparison_roc_*.png` | Model comparison (macro F1, ROC/AUC) |
 | `final_model.json` | Best model + hyperparameters for the final test |
+| `final_evaluation_metrics.csv`, `final_evaluation_per_class.csv` | Test set results (baseline vs. final model, train vs. test) |
+| `final_confusion_matrices.png`, `final_roc_curves.png`, `final_pr_curves.png`, `final_metrics.png` | Plots of the final evaluation |
 
 ## Reproducibility
 
